@@ -9,9 +9,20 @@ LASTFM_API_KEY = os.environ.get("LASTFM_API_KEY")
 LASTFM_API_SECRET = os.environ.get("LASTFM_API_SECRET")
 LASTFM_USERNAME = os.environ.get("LASTFM_USERNAME")
 LASTFM_SESSION_KEY = os.environ.get("LASTFM_SESSION_KEY") # optional
+LASTFM_LOVE_DELAY = int(os.environ.get("LASTFM_LOVE_DELAY") or 0) # optional
+
 SUBSONIC_URL = os.environ.get("SUBSONIC_URL")
+SUBSONIC_PORT = os.environ.get("SUBSONIC_PORT")
+SUBSONIC_VERSION = os.environ.get("SUBSONIC_VERSION")
 SUBSONIC_USERNAME = os.environ.get("SUBSONIC_USERNAME")
 SUBSONIC_PASSWORD = os.environ.get("SUBSONIC_PASSWORD")
+
+# optional
+SUBSONIC_LEGACY_AUTH = (
+    os.environ.get("SUBSONIC_LEGACY_AUTH").lower()
+    in ("true", "1", "t", "yes", "y")
+    or False
+)
 
 def make_song_id(artist, title):
     """
@@ -55,8 +66,9 @@ subsonic = libsonic.Connection(
     SUBSONIC_URL,
     SUBSONIC_USERNAME,
     SUBSONIC_PASSWORD,
-    apiVersion="1.15.0",
-    legacyAuth=True,
+    port = SUBSONIC_PORT,
+    apiVersion=SUBSONIC_VERSION,
+    legacyAuth=SUBSONIC_LEGACY_AUTH,
 )
 
 print("Getting starred songs from Subsonic...")
@@ -128,4 +140,4 @@ print("Adding missing songs:")
 for song in missing_songs:
     print("Adding '" + song["artist"], "-", song["title"] + "' (" + song["id"] + ") to Last.fm loved list.")
     lastfm.get_track(song["artist"], song["title"]).love()
-    time.sleep(1)
+    time.sleep(LASTFM_LOVE_DELAY)

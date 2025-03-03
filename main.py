@@ -9,7 +9,7 @@ LASTFM_API_KEY = os.environ.get("LASTFM_API_KEY")
 LASTFM_API_SECRET = os.environ.get("LASTFM_API_SECRET")
 LASTFM_USERNAME = os.environ.get("LASTFM_USERNAME")
 LASTFM_SESSION_KEY = os.environ.get("LASTFM_SESSION_KEY") # optional
-LASTFM_LOVE_DELAY = int(os.environ.get("LASTFM_LOVE_DELAY") or 0) # optional
+LASTFM_DELAY = int(os.environ.get("LASTFM_LOVE_DELAY") or 1) # optional
 
 SUBSONIC_URL = os.environ.get("SUBSONIC_URL")
 SUBSONIC_PORT = os.environ.get("SUBSONIC_PORT")
@@ -102,7 +102,7 @@ if not os.path.exists(SESSION_KEY_FILE) and not LASTFM_SESSION_KEY:
                 f.write(LASTFM_SESSION_KEY)
             break
         except pylast.WSError:
-            time.sleep(1)
+            time.sleep(LASTFM_DELAY)
 else:
     LASTFM_SESSION_KEY = open(SESSION_KEY_FILE).read()
 
@@ -111,13 +111,20 @@ lastfm.session_key = LASTFM_SESSION_KEY
 # get loved sonds from Last.fm
 print("Getting loved songs from Last.fm...")
 
-loved_songs = [
-    {
-        "artist": song.track.get_artist().get_name(),
-        "title": song.track.get_title(),
-        "id": make_song_id(song.track.get_artist().get_name(), song.track.get_title()),
-    } for song in lastfm.get_user(LASTFM_USERNAME).get_loved_tracks(None)
-]
+while True:
+    try:
+        loved_songs = [
+            {
+                "artist": song.track.get_artist().get_name(),
+                "title": song.track.get_title(),
+                "id": make_song_id(song.track.get_artist().get_name(), song.track.get_title()),
+            } for song in lastfm.get_user(LASTFM_USERNAME).get_loved_tracks(None)
+        ]
+        break
+    except pylast.PyLastError:
+        print("warning: failed to get loved songs")
+        time.sleep(LASTFM_DELAY)
+
 
 print("Got", len(loved_songs), "song(s).")
 
@@ -132,12 +139,26 @@ print("Found", len(missing_songs), "missing song(s) and", len(extra_songs), "ext
 # update Last.fm
 print("Removing extra songs:")
 for song in extra_songs:
-    print("Removing '" + song["artist"], "-", song["title"] + "' (" + song["id"] + ") from Last.fm loved list.")
-    lastfm.get_track(song["artist"], song["title"]).unlove()
-    time.sleep(1)
+    while True:
+        try:
+            print("Removing '" + song["artist"], "-", song["title"] + "' (" + song["id"] + ") from Last.fm loved list.")
+            lastfm.get_track(song["artist"], song["title"]).unlove()
+            break
+        except pylast.PyLastError:
+            print("warning: failed to remove song")
+
+        time.sleep(LASTFM_DELAY)
 
 print("Adding missing songs:")
 for song in missing_songs:
-    print("Adding '" + song["artist"], "-", song["title"] + "' (" + song["id"] + ") to Last.fm loved list.")
-    lastfm.get_track(song["artist"], song["title"]).love()
-    time.sleep(LASTFM_LOVE_DELAY)
+    while True:
+        try:
+            print("Adding '" + song["artist"], "-", song["title"] + "' (" + song["id"] + ") to Last.fm loved list.")
+            lastfm.get_track(song["artist"], song["title"]).love()
+            break
+        except pylast.PyLastError:
+            print("warning: failed to add song")
+
+        time.sleep(LASTFM_DELAY)
+
+print("Done!")

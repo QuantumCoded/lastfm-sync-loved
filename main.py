@@ -24,6 +24,13 @@ SUBSONIC_LEGACY_AUTH = (
     or False
 )
 
+# optional
+SESSION_KEY_FILE = (
+    (session_key_path := os.environ.get("SESSION_KEY_FILE"))
+    and os.path.normpath(session_key_path)
+    or os.path.join(os.path.expanduser("~"), ".session_key")
+)
+
 def make_song_id(artist, title):
     """
     FIXME:
@@ -86,7 +93,6 @@ print("Got", len(starred_songs), "song(s).")
 # sign in and authenticate to Last.fm
 print("Connecting to Last.fm...")
 
-SESSION_KEY_FILE = os.path.join(os.path.expanduser("~"), ".session_key")
 lastfm = pylast.LastFMNetwork(LASTFM_API_KEY, LASTFM_API_SECRET)
 if not os.path.exists(SESSION_KEY_FILE) and not LASTFM_SESSION_KEY:
     skg = pylast.SessionKeyGenerator(lastfm)
